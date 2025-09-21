@@ -89,16 +89,16 @@ release:
     {{ .ProjectName }} username
     ```
 
-brews:
-  - name: forklift
-    homepage: https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER }}/{{ .ProjectName }}
-    description: "Harvest GitHub repositories with SSH-first development workflow"
-    license: "MIT"
-    repository:
-      owner: "{{ .Env.GITHUB_REPOSITORY_OWNER }}"
-      name: homebrew-tap
-    commit_author:
-      name: goreleaserbot
-      email: bot@goreleaser.com
-    install: |
-      bin.install "{{ .ProjectName }}"
+#brews:
+#  - name: forklift
+#    homepage: https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER }}/{{ .ProjectName }}
+#    description: "Harvest GitHub repositories with SSH-first development workflow"
+#    license: "MIT"
+#    repository:
+#      owner: "{{ .Env.GITHUB_REPOSITORY_OWNER }}"
+#      name: homebrew-tap
+#    commit_author:
+#      name: goreleaserbot
+#      email: bot@goreleaser.com
+#   install: |
+#     bin.install "{{ .ProjectName }}"
