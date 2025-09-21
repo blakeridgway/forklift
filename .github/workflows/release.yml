@@ -4,169 +4,25 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
 
 jobs:
-  build:
-    name: Build binaries
+  goreleaser:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        goos: [linux, windows, darwin]
-        goarch: [amd64, arm64]
-        exclude:
-          - goos: windows
-            goarch: arm64
-    
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.21'
     
-    - name: Get dependencies
-      run: go mod download
-    
-    - name: Build binary
-      env:
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
-      run: |
-        # Create output directory
-        mkdir -p dist
-        
-        # Set binary name based on OS
-        if [ "$GOOS" = "windows" ]; then
-          BINARY_NAME="forklift.exe"
-        else
-          BINARY_NAME="forklift"
-        fi
-        
-        # Build the binary
-        go build -ldflags "-s -w" -o dist/${BINARY_NAME} .
-        
-        # Create archive
-        cd dist
-        if [ "$GOOS" = "windows" ]; then
-          zip forklift-${{ matrix.goos }}-${{ matrix.goarch }}.zip ${BINARY_NAME}
-        else
-          tar -czf forklift-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz ${BINARY_NAME}
-        fi
-    
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+    - name: Run GoReleaser
+      uses: goreleaser/goreleaser-action@v5
       with:
-        name: forklift-${{ matrix.goos }}-${{ matrix.goarch }}
-        path: dist/forklift-*
-
-  release:
-    name: Create Release
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Download all artifacts
-      uses: actions/download-artifact@v3
-      with:
-        path: artifacts
-    
-    - name: Display structure of downloaded files
-      run: ls -la artifacts/
-    
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
+        version: latest
+        args: release --clean
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
-        body: |
-          ## Changes in this Release
-          
-          * Cross-platform binaries for Linux, macOS, and Windows
-          * SSH-first GitHub repository cloning
-          * Interactive repository selection
-          * Language filtering and statistics
-          * Development-focused repository filtering
-          
-          ## Installation
-          
-          Download the appropriate binary for your platform:
-          
-          ### Linux
-          ```bash
-          wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/forklift-linux-amd64.tar.gz
-          tar -xzf forklift-linux-amd64.tar.gz
-          sudo mv forklift /usr/local/bin/
-          ```
-          
-          ### macOS
-          ```bash
-          wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/forklift-darwin-amd64.tar.gz
-          tar -xzf forklift-darwin-amd64.tar.gz
-          sudo mv forklift /usr/local/bin/
-          ```
-          
-          ### Windows
-          Download `forklift-windows-amd64.zip` and extract `forklift.exe`
-          
-          ## Usage
-          ```bash
-          forklift username
-          ```
-    
-    - name: Upload Linux AMD64
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./artifacts/forklift-linux-amd64/forklift-linux-amd64.tar.gz
-        asset_name: forklift-linux-amd64.tar.gz
-        asset_content_type: application/gzip
-    
-    - name: Upload Linux ARM64
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./artifacts/forklift-linux-arm64/forklift-linux-arm64.tar.gz
-        asset_name: forklift-linux-arm64.tar.gz
-        asset_content_type: application/gzip
-    
-    - name: Upload macOS AMD64
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./artifacts/forklift-darwin-amd64/forklift-darwin-amd64.tar.gz
-        asset_name: forklift-darwin-amd64.tar.gz
-        asset_content_type: application/gzip
-    
-    - name: Upload macOS ARM64 (Apple Silicon)
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./artifacts/forklift-darwin-arm64/forklift-darwin-arm64.tar.gz
-        asset_name: forklift-darwin-arm64.tar.gz
-        asset_content_type: application/gzip
-    
-    - name: Upload Windows AMD64
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./artifacts/forklift-windows-amd64/forklift-windows-amd64.zip
-        asset_name: forklift-windows-amd64.zip
-        asset_content_type: application/zip
